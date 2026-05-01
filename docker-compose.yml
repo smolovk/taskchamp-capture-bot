@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: taskchamp-bot
+    env_file: .env
+    volumes:
+      - task_data:/root/.task
+      - ./taskrc:/root/.taskrc:ro  # Mount taskrc as read-only
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  task_data:
+    driver: local

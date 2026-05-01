@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Environment variables
+.env
+.env.local
+
+# Taskwarrior data (if running locally)
+.task/
+taskrc
+
+# Docker volumes
+*.tar.gz
