@@ -1,9 +1,14 @@
+# Build and push command (run from repo root):
+# docker build -t docker.s1ngle.xyz/taskchamp-bot:latest . && docker push docker.s1ngle.xyz/taskchamp-bot:latest
+#
+# Or with buildx for multi-arch:
+# docker buildx build --platform linux/amd64,linux/arm64 -t docker.s1ngle.xyz/taskchamp-bot:latest --push .
+
 FROM python:3.11-slim
 
-# Install Taskwarrior and dependencies
+# Install Taskwarrior
 RUN apt-get update && apt-get install -y \
     taskwarrior \
-    taskwarrior-data \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

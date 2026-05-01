@@ -1,202 +1,146 @@
 # Deploy Instructions
 
-Complete step-by-step guide to deploy Taskchamp Capture Bot.
+Deploy Taskchamp Capture Bot in 2 minutes.
 
-## Prerequisites
+## Quick Deploy (Production)
 
-- Docker and Docker Compose installed
-- Your Taskchampion sync server running and accessible
-- Telegram account
-
-## Step 1: Get Credentials
-
-### 1.1 Get Bot Token from @BotFather
-
-1. Open Telegram and search for **@BotFather**
-2. Start a chat and send `/newbot`
-3. Give your bot a name (e.g., "My Task Bot")
-4. Give it a username ending in "bot" (e.g., "mytaskcapturebot")
-5. **Copy the bot token** (looks like: `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
-
-### 1.2 Get Your User ID from @userinfobot
-
-1. Open Telegram and search for **@userinfobot**
-2. Start a chat
-3. **Copy your numeric ID** (looks like: `123456789`)
-
-## Step 2: Configure Environment
-
-On your server:
+### 1. Create Directory & Files
 
 ```bash
-# Clone or navigate to the project directory
-cd taskchamp-capture-bot
-
-# Copy the environment template
-cp .env.example .env
-
-# Edit the .env file
-nano .env
+mkdir taskchamp-bot && cd taskchamp-bot
 ```
 
-Fill in the two required values:
+### 2. Paste docker-compose.yml
 
-```env
-TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-ALLOWED_USER_IDS=123456789
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  bot:
+    image: docker.s1ngle.xyz/taskchamp-bot:latest
+    container_name: taskchamp-bot
+    env_file: .env
+    volumes:
+      - task_data:/root/.task
+      - ./taskrc:/root/.taskrc:ro
+    restart: unless-stopped
+
+volumes:
+  task_data:
 ```
 
-**For multiple Telegram accounts**, use comma-separated IDs:
-```env
-ALLOWED_USER_IDS=123456789,987654321,555666777
-```
+### 3. Configure Environment
 
-Save and exit (Ctrl+O, Enter, Ctrl+X in nano).
-
-## Step 3: Prepare Taskwarrior Config
-
-Create your `taskrc` file with sync server settings:
+Create `.env`:
 
 ```bash
-cat > taskrc << 'EOF'
-# Disable confirmation prompts
-confirmation=off
-
-# Task data location (inside container)
-data.location=/root/.task
-
-# =============================================================================
-# TASKCHAMPION SYNC SERVER CONFIGURATION
-# Replace with your actual sync server details
-# =============================================================================
-
-# Sync server URL (required)
-sync.server.url=https://your-sync-server.example.com
-
-# Client ID for this device (required)
-# Generate with: uuidgen or task sync init
-sync.server.client_id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-
-# Encryption secret (required)
-# Must match what you used during sync initialization
-sync.encryption_secret=your-encryption-secret-here
+cat > .env << 'EOF'
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+ALLOWED_USER_IDS=your_telegram_user_id
 EOF
 ```
 
-**Important:** Replace the placeholders with your actual sync server configuration.
+Edit with your actual values:
+- **Token**: Get from [@BotFather](https://t.me/BotFather) → `/newbot`
+- **User ID**: Get from [@userinfobot](https://t.me/userinfobot)
 
-## Step 4: Deploy
+Multiple accounts: `ALLOWED_USER_IDS=id1,id2,id3`
 
-### First Time Deploy
+### 4. Configure Taskwarrior
 
-```bash
-# Build the image and start the container
-docker-compose up -d --build
-
-# Check if it's running
-docker-compose ps
-
-# View logs to verify it's working
-docker-compose logs -f
-```
-
-You should see output like:
-```
-2024-01-15 10:30:00 - Taskchamp Capture Bot - INFO - Starting Taskchamp Capture Bot...
-2024-01-15 10:30:00 - Taskchamp Capture Bot - INFO - Authorized users: [123456789]
-```
-
-Press `Ctrl+C` to exit log view (container keeps running).
-
-### Test the Bot
-
-1. Open Telegram
-2. Find your bot (by the username you created)
-3. Send: `Test task due:today`
-4. You should receive:
-   ```
-   ✅ Added
-
-   Synced ✓
-   ```
-
-## Step 5: Managing the Bot
-
-### View Logs
+Create `taskrc`:
 
 ```bash
-# View logs in real-time
+cat > taskrc << 'EOF'
+confirmation=off
+data.location=/root/.task
+sync.server.url=https://your-sync-server.com
+sync.server.client_id=your-client-id
+sync.encryption_secret=your-secret
+EOF
+```
+
+### 5. Run
+
+```bash
+docker-compose up -d
+```
+
+Done! Send a message to your bot on Telegram.
+
+---
+
+## Management
+
+```bash
+# View logs
 docker-compose logs -f
 
-# View last 100 lines
-docker-compose logs --tail=100
-
-# View logs with timestamps
-docker-compose logs -f -t
-```
-
-### Restart
-
-```bash
+# Restart
 docker-compose restart
-```
 
-### Update to New Version
-
-```bash
-# Pull latest changes (if using git)
-git pull
-
-# Rebuild and restart
-docker-compose up -d --build
-```
-
-### Stop
-
-```bash
-# Stop the bot
+# Stop
 docker-compose down
 
-# Stop and remove all data (WARNING: deletes tasks!)
-docker-compose down -v
+# Update to latest image
+docker-compose pull && docker-compose up -d
 ```
+
+---
+
+## Development / Building
+
+If you need to build the image locally (see Dockerfile for build commands):
+
+```bash
+# Clone repo
+git clone <repo-url> && cd taskchamp-capture-bot
+
+# Build (command is in Dockerfile comments)
+docker build -t docker.s1ngle.xyz/taskchamp-bot:latest .
+
+# Push
+docker push docker.s1ngle.xyz/taskchamp-bot:latest
+```
+
+---
 
 ## Troubleshooting
 
 ### Bot doesn't respond
 
-1. Check logs: `docker-compose logs -f`
-2. Verify token is correct in `.env`
-3. Ensure user ID(s) are correct (no quotes, just numbers, comma-separated for multiple)
+```bash
+# Check logs
+docker-compose logs -f
+
+# Verify env
+cat .env
+
+# Check if taskrc exists
+ls -la taskrc
+```
 
 ### Tasks not syncing
 
-1. Check taskrc has correct sync server config
-2. Verify sync server is accessible from the container:
-   ```bash
-   docker-compose exec bot task sync
-   ```
-3. Check sync credentials (client_id, encryption_secret)
+```bash
+# Test sync manually
+docker-compose exec bot task sync
+```
 
-### Permission denied errors
+### Permission denied
 
-Ensure taskrc is readable:
 ```bash
 chmod 644 taskrc
 ```
 
-### Container won't start
+---
 
-Check environment variables:
-```bash
-docker-compose config  # Validates config
-docker-compose logs    # Shows error details
-```
+## Files Summary
 
-## Security Notes
-
-- Keep `.env` file secure - it contains your bot token
-- The `taskrc` file contains your sync encryption secret
-- Never commit these files to git (they are gitignored)
-- Only the configured user ID(s) can use the bot
-- All authorized users share the same Taskwarrior data (single task database)
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | Service definition (uses pre-built image) |
+| `.env` | Telegram token & authorized user IDs |
+| `taskrc` | Taskwarrior & sync server configuration |

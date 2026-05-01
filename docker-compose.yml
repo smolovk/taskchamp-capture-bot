@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   bot:
-    build: .
+    image: docker.s1ngle.xyz/taskchamp-bot:latest
     container_name: taskchamp-bot
     env_file: .env
     volumes:
